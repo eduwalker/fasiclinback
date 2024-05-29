@@ -259,6 +259,9 @@ public class ScreenController {
         return ResponseEntity.ok(response);
     }
 
+
+    // Add mais funcoes logo  a baixo
+
 }
 
 
