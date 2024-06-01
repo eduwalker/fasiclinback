@@ -9,17 +9,25 @@ import com.example.enfermagemapirest.dto.response.AnamneseResponseDTO;
 import com.example.enfermagemapirest.dto.response.PacienteResponseDTO;
 import com.example.enfermagemapirest.services.AnamneseService;
 import com.example.enfermagemapirest.services.TokenService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/fasiclin")
 public class ScreenController {
+
+
 
     @Autowired
     private AnamneseService anamneseService;
@@ -260,7 +268,72 @@ public class ScreenController {
     }
 
 
-    // Add mais funcoes logo  a baixo
+
+    @GetMapping("/anamneses/supervisor")
+    public ResponseEntity<?> getAnamnesesBySupervisor(@RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+        String username = tokenService.validateToken(token);
+
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        // Obter o profissional pelo username
+        ProfissionalEntity supervisor = (ProfissionalEntity) profissionalRepository.findByUsername(username);
+        if (supervisor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não encontrado.");
+        }
+
+        try {
+            List<AnamneseResponseDTO> anamneses = anamneseService.getAnamnesesBySupervisor(supervisor.getCodProf());
+            return ResponseEntity.ok(anamneses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/anamnese/update-observations")
+    public ResponseEntity<?> updateObservations(@RequestBody AnamneseObsDTO request, @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+
+        String username = tokenService.validateToken(token);
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        Optional<AnamneseEntity> anamneseOptional = anamneseRepository.findById(request.anamneseId());
+        if (anamneseOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Anamnese não encontrada.");
+        }
+
+        AnamneseEntity anamnese = anamneseOptional.get();
+        anamnese.setObservacoes(request.observacoes());
+        anamnese.setStatusAnamneseFn(request.status());
+
+        anamneseRepository.save(anamnese);
+        return ResponseEntity.ok("Status e observações atualizados com sucesso.");
+    }
+
+
+    @PutMapping("/anamnese/update-respostas")
+    public ResponseEntity<?> updateRespostas(@RequestBody AnamneseRespostasDTO request, @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+
+        String username = tokenService.validateToken(token);
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        try {
+            anamneseService.updateRespostas(request);
+            return ResponseEntity.ok("Respostas da anamnese atualizadas com sucesso.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("ID de pergunta desconhecido.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro ao atualizar respostas da anamnese.");
+        }
+    }
+
 
 }
 

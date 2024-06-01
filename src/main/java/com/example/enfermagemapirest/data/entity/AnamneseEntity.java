@@ -35,6 +35,9 @@ public class AnamneseEntity {
     @Column(name = "status_anamnese_fn")
     private String statusAnamneseFn;
 
+    @Column(name = "observacoes")
+    private String observacoes;
+
     @ManyToOne
     @JoinColumn(name = "cpf_pac", referencedColumnName = "cpf_pac", insertable = false, updatable = false)
     private PacienteEntity paciente;
