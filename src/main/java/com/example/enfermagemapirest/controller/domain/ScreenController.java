@@ -9,6 +9,7 @@ import com.example.enfermagemapirest.dto.response.AnamneseResponseDTO;
 import com.example.enfermagemapirest.dto.response.PacienteResponseDTO;
 import com.example.enfermagemapirest.services.AnamneseService;
 import com.example.enfermagemapirest.services.TokenService;
+import jakarta.ws.rs.PUT;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -315,6 +316,30 @@ public class ScreenController {
     }
 
 
+
+    @PutMapping("/anamnese/update-status")
+    public ResponseEntity<?> updatestatus(@RequestBody StatusAnamneseDTO request, @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+
+        String username = tokenService.validateToken(token);
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        Optional<AnamneseEntity> anamneseOptional = anamneseRepository.findById(request.idAnamnese());
+        if (anamneseOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Anamnese não encontrada.");
+        }
+
+        AnamneseEntity anamnese = anamneseOptional.get();
+        anamnese.setStatusAnamneseFn(request.statusfn());
+
+
+        anamneseRepository.save(anamnese);
+        return ResponseEntity.ok("Status alterado com sucesso!");
+    }
+
+
     @PutMapping("/anamnese/update-respostas")
     public ResponseEntity<?> updateRespostas(@RequestBody AnamneseRespostasDTO request, @RequestHeader("Authorization") String bearerToken) {
         String token = bearerToken.replace("Bearer ", "");
@@ -334,9 +359,52 @@ public class ScreenController {
         }
     }
 
+    @GetMapping("/anamneses/page")
+    public ResponseEntity<?> getPagedAnamnesesByUser(@RequestHeader("Authorization") String bearerToken,
+                                                     @RequestParam(defaultValue = "0") int page,
+                                                     @RequestParam(defaultValue = "10") int size) {
+        String token = bearerToken.replace("Bearer ", "");
+        String username = tokenService.validateToken(token);
 
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        try {
+            Page<AnamneseResponseDTO> anamneses = anamneseService.getPagedAnamnesesByUser(username, pageable);
+            return ResponseEntity.ok(anamneses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/anamneses/supervisor/page")
+    public ResponseEntity<?> getPagedAnamnesesBySupervisor(@RequestHeader("Authorization") String bearerToken,
+                                                           @RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "10") int size) {
+        String token = bearerToken.replace("Bearer ", "");
+        String username = tokenService.validateToken(token);
+
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        // Obter o profissional pelo username
+        ProfissionalEntity supervisor = (ProfissionalEntity) profissionalRepository.findByUsername(username);
+        if (supervisor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não encontrado.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        try {
+            Page<AnamneseResponseDTO> anamneses = anamneseService.getPagedAnamnesesBySupervisor(supervisor.getCodProf(), pageable);
+            return ResponseEntity.ok(anamneses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
 }
-
 
 
 
