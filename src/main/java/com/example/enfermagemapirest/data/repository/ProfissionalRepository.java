@@ -12,6 +12,6 @@ public interface ProfissionalRepository extends JpaRepository<ProfissionalEntity
 
     UserDetails findByUsername(String username);
 
-    Optional<ProfissionalEntity> findByCodProf(Long username);
+    Optional<ProfissionalEntity> findByCodProf(Long codProf);
 
 }

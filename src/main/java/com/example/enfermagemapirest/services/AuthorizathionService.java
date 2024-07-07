@@ -13,8 +13,12 @@ public class AuthorizathionService implements UserDetailsService {
 
     @Autowired
     ProfissionalRepository profissionalRepository;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return profissionalRepository.findByUsername(username);
+        Long codProf = Long.parseLong(username);
+        return profissionalRepository.findByCodProf(codProf)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
     }
 }
+

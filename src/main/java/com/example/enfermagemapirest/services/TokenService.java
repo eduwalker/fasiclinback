@@ -23,7 +23,7 @@ public class TokenService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             String token = JWT.create()
                     .withIssuer("auth-api")
-                    .withSubject(profissional.getUsername())
+                    .withSubject(profissional.getCodProf().toString())
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);
             return token;
@@ -49,4 +49,5 @@ public class TokenService {
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-04:00"));
     }
 }
+
 

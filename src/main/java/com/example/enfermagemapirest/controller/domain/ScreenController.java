@@ -8,6 +8,7 @@ import com.example.enfermagemapirest.dto.response.AnamneseIdResponseDTO;
 import com.example.enfermagemapirest.dto.response.AnamneseResponseDTO;
 import com.example.enfermagemapirest.dto.response.PacienteResponseDTO;
 import com.example.enfermagemapirest.services.AnamneseService;
+import com.example.enfermagemapirest.services.PdfLinkGenerator;
 import com.example.enfermagemapirest.services.TokenService;
 import jakarta.ws.rs.PUT;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -28,7 +30,10 @@ import java.util.stream.Collectors;
 @RequestMapping("/fasiclin")
 public class ScreenController {
 
-
+    @Autowired
+    private ProntuarioRepository prontuarioRepository;
+    @Autowired
+    private ProcedimentoRepository procedimentoRepository;
 
     @Autowired
     private AnamneseService anamneseService;
@@ -404,7 +409,93 @@ public class ScreenController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+
+    @PutMapping("/anamnese/update-auth-pac")
+    public ResponseEntity<?> updateAuthPac(@RequestBody AnamneseAuthPacUpdateDTO request, @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+
+        String username = tokenService.validateToken(token);
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        Optional<AnamneseEntity> anamneseOptional = anamneseRepository.findById(request.anamneseId());
+        if (anamneseOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Anamnese não encontrada.");
+        }
+
+        AnamneseEntity anamnese = anamneseOptional.get();
+        anamnese.setAuth_pac(request.authPac());
+
+        anamneseRepository.save(anamnese);
+        return ResponseEntity.ok("Auth_pac atualizado com sucesso!");
+    }
+
+    @PostMapping("/anamnese/save-to-prontuario")
+    public ResponseEntity<?> saveAnamneseToProntuario(@RequestBody AnamneseSaveProntuarioRequestDTO request, @RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+
+        // Valida o token e obtém o username do profissional
+        String username = tokenService.validateToken(token);
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        // Obter o anamneseId do corpo da solicitação
+        Long anamneseId = request.anamneseId();
+        if (anamneseId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("anamneseId é obrigatório.");
+        }
+
+        // Valida se a anamnese existe
+        Optional<AnamneseEntity> anamneseOptional = anamneseRepository.findById(anamneseId);
+        if (anamneseOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Anamnese não encontrada.");
+        }
+
+        AnamneseEntity anamnese = anamneseOptional.get();
+
+        // Valida se o paciente existe
+        Optional<PacienteEntity> pacienteOptional = pacienteRepository.findByCpfPac(anamnese.getCpfPac());
+        if (pacienteOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Paciente não encontrado.");
+        }
+
+        PacienteEntity paciente = pacienteOptional.get();
+
+        // Obter o procedimento
+        Long codProced = 10001L; // Supondo 1 como código do procedimento, isso deve ser ajustado conforme necessário
+        Optional<ProcedimentoEntity> procedimentoOptional = procedimentoRepository.findByCodProced(codProced);
+        if (procedimentoOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Procedimento não encontrado.");
+        }
+
+        ProcedimentoEntity procedimento = procedimentoOptional.get();
+
+        // Gerar o link do PDF
+        String pdfLink = anamnese.getCodProf() + anamneseId + new SimpleDateFormat("yyyyMMddHHmm").format(anamnese.getDataAnamnese()) + ".pdf";
+
+        // Cria a nova entidade Prontuario
+        ProntuarioEntity prontuario = new ProntuarioEntity();
+        prontuario.setCpfPac(anamnese.getCpfPac());
+        prontuario.setCodEspec(1L); // Supondo 1 como código da especialidade, isso deve ser ajustado conforme necessário
+        prontuario.setCodProf(anamnese.getCodProf());
+        prontuario.setCodProced(procedimento.getCodProced());
+        prontuario.setDataProced(String.valueOf(anamnese.getDataAnamnese()));
+        prontuario.setDescrProced(procedimento.getDescrProced()); // Usando a descrição do procedimento
+        prontuario.setLinkProced(pdfLink);
+        prontuario.setAutVisPac(anamnese.getAuth_pac());
+
+        // Salva o prontuário no banco de dados
+        prontuarioRepository.save(prontuario);
+
+        return ResponseEntity.ok("Anamnese salva no prontuário com sucesso!");
+    }
+
 }
+
+
+
 
 
 
