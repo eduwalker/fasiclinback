@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,"/fasiclin/anamnese/update-observations").hasRole("USER")
                         .requestMatchers(HttpMethod.POST,"/fasiclin/anamnese/update-auth-pac").hasRole("USER")
                         .requestMatchers(HttpMethod.POST,"/fasiclin/anamnese/save-to-prontuario").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET,"/fasiclin/anamneses/supervisor/aprovadas/page").hasRole("USER")
                         .requestMatchers(HttpMethod.GET,"/prontuario/download/**").permitAll()
                         .requestMatchers(HttpMethod.POST,"/prontuario/save").hasRole("USER")
                         .requestMatchers(HttpMethod.PUT,"/fasiclin/anamnese/update-respostas").hasRole("USER")

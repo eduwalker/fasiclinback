@@ -27,4 +27,10 @@ public interface AnamneseRepository extends JpaRepository<AnamneseEntity, Long> 
 
     @Query("SELECT a FROM AnamneseEntity a WHERE a.profissional.supProf = :codSup OR a.profissional.codProf = :codSup ORDER BY a.dataAnamnese DESC")
     Page<AnamneseEntity> findBySupervisor(@Param("codSup") Long codSup, Pageable pageable);
+
+    @Query("SELECT a FROM AnamneseEntity a WHERE a.profissional.supProf = :codSup AND a.statusAnamneseFn = 'Aprovada' ORDER BY a.dataAnamnese DESC")
+    List<AnamneseEntity> findApprovedBySupervisor(@Param("codSup") Long codSup);
+
+    @Query("SELECT a FROM AnamneseEntity a WHERE a.profissional.supProf = :codSup AND a.statusAnamneseFn = 'Aprovada' ORDER BY a.dataAnamnese DESC")
+    Page<AnamneseEntity> findApprovedBySupervisor(@Param("codSup") Long codSup, Pageable pageable);
 }

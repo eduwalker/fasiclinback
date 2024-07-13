@@ -110,6 +110,7 @@ public class AnamneseService {
                 anamnese.getStatusAnamneseFn(),
                 anamnese.getObservacoes(),
                 anamnese.getProfissional().getNomeProf(),
+                anamnese.getAuth_pac(),
                 pacienteDto
         );
     }
@@ -151,5 +152,17 @@ public class AnamneseService {
         } else {
             throw new IllegalArgumentException("ID de pergunta desconhecido: " + respostaDTO.questionID());
         }
+    }
+
+    public List<AnamneseResponseDTO> getApprovedAnamnesesBySupervisor(Long codSup) {
+        List<AnamneseEntity> anamneses = anamneseRepository.findApprovedBySupervisor(codSup);
+        ProfissionalEntity supervisor = profissionalRepository.findByCodProf(codSup).orElseThrow(() -> new RuntimeException("Supervisor não encontrado."));
+        return mapAnamnesesToDTOs(anamneses, supervisor);
+    }
+
+    public Page<AnamneseResponseDTO> getPagedApprovedAnamnesesBySupervisor(Long codSup, Pageable pageable) {
+        ProfissionalEntity supervisor = profissionalRepository.findByCodProf(codSup).orElseThrow(() -> new RuntimeException("Supervisor não encontrado."));
+        Page<AnamneseEntity> anamneses = anamneseRepository.findApprovedBySupervisor(codSup, pageable);
+        return anamneses.map(anamnese -> mapAnamneseToDTO(anamnese, supervisor));
     }
 }

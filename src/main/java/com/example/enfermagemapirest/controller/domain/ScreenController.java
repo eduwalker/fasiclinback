@@ -492,6 +492,55 @@ public class ScreenController {
         return ResponseEntity.ok("Anamnese salva no prontuário com sucesso!");
     }
 
+    @GetMapping("/anamneses/supervisor/aprovadas")
+    public ResponseEntity<?> getApprovedAnamnesesBySupervisor(@RequestHeader("Authorization") String bearerToken) {
+        String token = bearerToken.replace("Bearer ", "");
+        String username = tokenService.validateToken(token);
+
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        ProfissionalEntity supervisor = (ProfissionalEntity) profissionalRepository.findByUsername(username);
+        if (supervisor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não encontrado.");
+        }
+
+        try {
+            List<AnamneseResponseDTO> approvedAnamneses = anamneseService.getApprovedAnamnesesBySupervisor(supervisor.getCodProf());
+            return ResponseEntity.ok(approvedAnamneses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/anamneses/supervisor/aprovadas/page")
+    public ResponseEntity<?> getPagedApprovedAnamnesesBySupervisor(@RequestHeader("Authorization") String bearerToken,
+                                                                   @RequestParam(defaultValue = "0") int page,
+                                                                   @RequestParam(defaultValue = "10") int size) {
+        String token = bearerToken.replace("Bearer ", "");
+        String username = tokenService.validateToken(token);
+
+        if (username.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido ou expirado.");
+        }
+
+        ProfissionalEntity supervisor = (ProfissionalEntity) profissionalRepository.findByUsername(username);
+        if (supervisor == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não encontrado.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        try {
+            Page<AnamneseResponseDTO> approvedAnamneses = anamneseService.getPagedApprovedAnamnesesBySupervisor(supervisor.getCodProf(), pageable);
+            return ResponseEntity.ok(approvedAnamneses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+
+
 }
 
 

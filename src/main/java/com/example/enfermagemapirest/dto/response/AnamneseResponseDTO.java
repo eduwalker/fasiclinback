@@ -11,6 +11,7 @@ public record AnamneseResponseDTO(
         String statusAnamneseFn,
         String observacoes,
         String nomeProf,
+        int authPac,
         PacienteResponseDTO pacienteResponseDTO
 
 ) {
